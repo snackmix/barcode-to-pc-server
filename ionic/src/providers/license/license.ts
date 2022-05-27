@@ -40,7 +40,7 @@ export class LicenseProvider {
   public static LICENSE_PRO = 'barcode-to-pc-pro-license';
   public static LICENSE_UNLIMITED = 'barcode-to-pc-unlimited-license';
 
-  public activeLicense = LicenseProvider.LICENSE_FREE;
+  public activeLicense = LicenseProvider.LICENSE_UNLIMITED;
   public serial = '';
 
   private upgradeDialog: Alert = null;
@@ -125,68 +125,6 @@ export class LicenseProvider {
       // still saved to the storage
       return;
     }
-
-    this.http.post(Config.URL_ORDER_CHECK, {
-      serial: this.serial,
-      uuid: this.electronProvider.uuid
-    }).subscribe(async value => {
-      this.electronProvider.store.set(Config.STORAGE_FIRST_LICENSE_CHECK_FAIL_DATE, 0);
-      if (value['active'] == true) {
-
-        // If the license name changed it means that a license UPGRADE has been performed
-        // The 'plan' attribute referes to the license name.
-        if (this.activeLicense != value['plan']) {
-          console.log('upgrade')
-          this.electronProvider.store.set(Config.STORAGE_NEXT_CHARGE_DATE, this.generateNextChargeDate());
-          this.electronProvider.store.set(Config.STORAGE_SUBSCRIPTION, value['plan']);
-          this.activeLicense = value['plan'];
-        }
-
-        if (serial) {
-          let everActivated = this.electronProvider.store.get(Config.STORAGE_LICENSE_EVER_ACTIVATED, false);
-          if (!everActivated) {
-            this.electronProvider.store.set(Config.STORAGE_MONTHLY_SCAN_COUNT, 0);
-          }
-          this.electronProvider.store.set(Config.STORAGE_LICENSE_EVER_ACTIVATED, true);
-          this.utilsProvider.showSuccessNativeDialog(await this.utilsProvider.text('licenseActivatedDialogMessage'));
-          window.confetti.start(3000);
-          this.events.publish('license:activate');
-        }
-
-        // V4 Upgrade
-        if (value['version'] != 'v4') {
-          await this.showV4UpgradeDialog();
-        }
-      } else {
-        // When the license-server says that the subscription is not active
-        // the user should be propted immediatly, no matter what is passed a
-        // serial or not.
-        this.deactivate();
-        this.utilsProvider.showErrorNativeDialog(value['message']);
-      }
-    }, async (error: HttpErrorResponse) => {
-      if (serial) {
-        // if (error.status == 503) {
-        //   this.utilsProvider.showErrorNativeDialog('Unable to fetch the subscription information, try later (FS problem)');
-        // }
-        this.deactivate();
-        this.utilsProvider.showErrorNativeDialog(await this.utilsProvider.text('licenseActivationErrorDialogMessage'));
-      } else {
-        // Perhaps there is a connection problem, wait 15 days before asking the
-        // user to enable the connection.
-        // For simplicty the STORAGE_FIRST_LICENSE_CHECK_FAIL_DATE field is used
-        // only within this method
-        let firstFailDate = this.electronProvider.store.get(Config.STORAGE_FIRST_LICENSE_CHECK_FAIL_DATE, 0);
-        let now = new Date().getTime();
-        if (firstFailDate && (now - firstFailDate) > 1296000000) { //  15 days = 1296000000 ms
-          this.electronProvider.store.set(Config.STORAGE_FIRST_LICENSE_CHECK_FAIL_DATE, 0);
-          this.deactivate();
-          this.utilsProvider.showErrorNativeDialog(await this.utilsProvider.text('licensePeriodicCheckErrorDialogMessage'));
-        } else {
-          this.electronProvider.store.set(Config.STORAGE_FIRST_LICENSE_CHECK_FAIL_DATE, now);
-        }
-      }
-    })
   } // updateSubscriptionStatus
 
   /**
@@ -259,8 +197,7 @@ export class LicenseProvider {
     }
 
     // scanLimitReached
-    let scanLimitReached =
-      this.getNOMaxAllowedScansPerMonth() - this.electronProvider.store.get(Config.STORAGE_MONTHLY_SCAN_COUNT, 0) <= 0;
+    let scanLimitReached = false;
 
     // periodOfUseSinceFirstConnection
     let periodOfUseSinceFirstConnection = 'days';
@@ -311,23 +248,7 @@ export class LicenseProvider {
    * has been exceeded
    */
   async limitMonthlyScans(noNewScans = 1) {
-    if (this.activeLicense == LicenseProvider.LICENSE_UNLIMITED) {
-      return;
-    }
-
-    let count = this.electronProvider.store.get(Config.STORAGE_MONTHLY_SCAN_COUNT, 0);
-    count += noNewScans;
-    this.electronProvider.store.set(Config.STORAGE_MONTHLY_SCAN_COUNT, count);
-
-    if (count > this.getNOMaxAllowedScansPerMonth()) {
-      let message = await this.utilsProvider.text('scansLimitReachedDialogMessage');
-      this.devicesProvider.kickAllDevices(message);
-      await this.showUpgradeDialog(
-        'limitMonthlyScans',
-        await this.utilsProvider.text('scansLimitReachedDialogTitle'),
-        message
-      );
-    }
+    return;
   }
 
   /**
@@ -336,21 +257,7 @@ export class LicenseProvider {
    */
   canUseNumberParameter(showUpgradeDialog = true): Promise<boolean> {
     return new Promise<boolean>(async (resolve) => {
-      let available = false;
-      switch (this.activeLicense) {
-        case LicenseProvider.LICENSE_FREE: available = false; break;
-        case LicenseProvider.LICENSE_BASIC: available = true; break;
-        case LicenseProvider.LICENSE_PRO: available = true; break;
-        case LicenseProvider.LICENSE_UNLIMITED: available = true; break;
-      }
-
-      if (!available && showUpgradeDialog) {
-        await this.showUpgradeDialog(
-          'canUseNumberParameter',
-          await this.utilsProvider.text('numberComponentNotAvailableDialogTitle'),
-          await this.utilsProvider.text('numberComponentNotAvailableDialogMessage'),
-        );
-      }
+      let available = true;
       resolve(available);
     });
   }
@@ -361,53 +268,25 @@ export class LicenseProvider {
    */
   canUseCSVAppend(showUpgradeDialog = false): Promise<boolean> {
     return new Promise<boolean>(async (resolve) => {
-      let available = false;
-      switch (this.activeLicense) {
-        case LicenseProvider.LICENSE_FREE: available = false; break;
-        case LicenseProvider.LICENSE_BASIC: available = true; break;
-        case LicenseProvider.LICENSE_PRO: available = true; break;
-        case LicenseProvider.LICENSE_UNLIMITED: available = true; break;
-      }
-      if (!available && showUpgradeDialog) {
-        await this.showUpgradeDialog(
-          'canUseCSVAppend',
-          await this.utilsProvider.text('csvAppendNotAvailableDialogTitle'),
-          await this.utilsProvider.text('csvAppendNotAvailableDialogMessage'),
-        );
-      }
+      let available = true;
       resolve(available);
     });
   }
 
   getNOMaxComponents() {
-    switch (this.activeLicense) {
-      case LicenseProvider.LICENSE_FREE: return 4;
-      case LicenseProvider.LICENSE_BASIC: return 5;
-      case LicenseProvider.LICENSE_PRO: return 10;
-      case LicenseProvider.LICENSE_UNLIMITED: return Number.MAX_SAFE_INTEGER;
-    }
+    return Number.MAX_SAFE_INTEGER;
   }
 
   getNOMaxAllowedConnectedDevices() {
-    switch (this.activeLicense) {
-      case LicenseProvider.LICENSE_FREE: return 1;
-      case LicenseProvider.LICENSE_BASIC: return 1;
-      case LicenseProvider.LICENSE_PRO: return 3;
-      case LicenseProvider.LICENSE_UNLIMITED: return Number.MAX_SAFE_INTEGER;
-    }
+    return Number.MAX_SAFE_INTEGER;
   }
 
   getNOMaxAllowedScansPerMonth() {
-    switch (this.activeLicense) {
-      case LicenseProvider.LICENSE_FREE: return 300;
-      case LicenseProvider.LICENSE_BASIC: return 1000;
-      case LicenseProvider.LICENSE_PRO: return 10000;
-      case LicenseProvider.LICENSE_UNLIMITED: return Number.MAX_SAFE_INTEGER;
-    }
+    return Number.MAX_SAFE_INTEGER;
   }
 
   isSubscribed() {
-    return this.activeLicense != LicenseProvider.LICENSE_FREE;
+    return true;
   }
 
   getLicenseName() {
