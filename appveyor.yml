@@ -17,7 +17,6 @@ install:
   - appveyor DownloadFile https://github.com/fttx/barcode-to-pc-server/blob/master/electron/electron-resources/Bonjour64.msi?raw=true
   - msiexec /i Bonjour64.msi /qn
   - del Bonjour64.msi
-  - appveyor DownloadFile %BONJOUR_SDK_DOWNLOAD%
   - bonjoursdksetup.exe /quiet
   - del bonjoursdksetup.exe
 
