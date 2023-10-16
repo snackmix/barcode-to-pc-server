@@ -19,6 +19,12 @@ install:
   - del Bonjour64.msi
   - bonjoursdksetup.exe /quiet
   - del bonjoursdksetup.exe
+  - ps: $package_json = Get-Content -Raw -Path .\electron\package.json
+  - ps: $package_json = $package_json -replace ".*certificateSha1.*\r?\n" -replace ",(?=\r?\n\W+})"
+  - ps: echo "$package_json"
+  - ps: $package_json_path = (Get-Item -Path "." -Verbose).FullName + "\electron\package.json"
+  - ps: $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+  - ps: "[System.IO.File]::WriteAllLines($package_json_path, $package_json, $Utf8NoBomEncoding)"
   - git config --global user.email "build@github.com"
   - git config --global user.name "Build User"
   - npm cache verify
