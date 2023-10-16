@@ -1,4 +1,4 @@
-version: v{build}
+version: {build}
 branches:
   only:
     - master
@@ -13,25 +13,21 @@ image: Visual Studio 2019
 install:
   - ps: Install-Product node $env:nodejs_version x64
   - set PATH=%programfiles(x86)%\\Microsoft SDKs\TypeScript\2.4;%PATH%
-
+  - python --version
   - appveyor DownloadFile https://github.com/snackmix/barcode-to-pc-server/raw/master/electron/electron-resources/Bonjour64.msi
   - msiexec /i Bonjour64.msi /qn
   - del Bonjour64.msi
   - bonjoursdksetup.exe /quiet
   - del bonjoursdksetup.exe
-
   - git config --global user.email "filippo.tortomasi@gmail.com"
   - git config --global user.name "Filippo Tortomasi"
-
   - ps: $env:package_version = (Get-Content -Raw -Path electron\package.json | ConvertFrom-Json).version
   - ps: Update-AppveyorBuild -Version "$env:package_version-$env:APPVEYOR_BUILD_NUMBER"
-
   - ps: $package_json = Get-Content -Raw -Path .\electron\package.json
   - ps: $package_json = $package_json -replace ".*certificateSha1.*\r?\n" -replace ",(?=\r?\n\W+})"
-  - ps: $package_json_path = (Get-Item -Path "." -Verbose).FullName + '\electron\package.json'
+  - ps: $package_json_path = (Get-Item -Path "." -Verbose).FullName + "\electron\package.json"
   - ps: $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
   - ps: "[System.IO.File]::WriteAllLines($package_json_path, $package_json, $Utf8NoBomEncoding)"
-
   - npm cache verify
   - cd electron
   - npm ci --unsafe-perm
