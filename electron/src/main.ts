@@ -5,7 +5,6 @@ import { ConnectionHandler } from './handlers/connection.handler';
 import { ScansHandler } from './handlers/scans.handler';
 import { SettingsHandler } from './handlers/settings.handler';
 import { UiHandler } from './handlers/ui.handler';
-import { UpdateHandler } from './handlers/update.handler';
 import * as http from 'http';
 import ElectronStore = require('electron-store');
 require('@electron/remote/main').initialize()
@@ -15,7 +14,6 @@ const settingsHandler = SettingsHandler.getInstance();
 const uiHandler = UiHandler.getInstance(settingsHandler);
 const scansHandler = ScansHandler.getInstance(settingsHandler, uiHandler);
 const connectionHandler = ConnectionHandler.getInstance(uiHandler, settingsHandler);
-const updateHandler = UpdateHandler.getInstance(uiHandler, settingsHandler);
 
 let ipcClient: Electron.WebContents, lastArgv;
 
@@ -48,7 +46,6 @@ ipcMain
         // TODO: get rid of setIpcClients, they generate unknown of unknowns
         connectionHandler.setIpcClient(ipcClient);
         uiHandler.setIpcClient(ipcClient);
-        updateHandler.setIpcClient(ipcClient);
         scansHandler.setIpcClient(ipcClient);
 
         // wss events should be registered immediately
