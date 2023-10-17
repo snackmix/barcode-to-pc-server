@@ -12,7 +12,7 @@ import { v4 } from 'uuid';
 import * as os from 'os'
 
 export class SettingsHandler implements Handler {
-    public onSettingsChanged: ReplaySubject<SettingsModel> = new ReplaySubject<SettingsModel>(); // triggered after the page load and on every setting change. See ElectronProvider.
+    public onSettingsChanged: ReplaySubject<SettingsModel> = new ReplaySubject<SettingsModel>();
     private settings: SettingsModel;
 
     private static instance: SettingsHandler;
@@ -20,7 +20,7 @@ export class SettingsHandler implements Handler {
 
     private constructor() {
         this.store = new ElectronStore();
-        // this communication is needed because electronStore.onDidChange() triggers only within the same process
+
         ipcMain.on('settings', (event, arg) => {
             const settings: any = this.store.get(Config.STORAGE_SETTINGS, new SettingsModel(os.platform().toLowerCase())) ;
             this.settings = settings;
@@ -35,7 +35,6 @@ export class SettingsHandler implements Handler {
         return SettingsHandler.instance;
     }
 
-    // TODO: remove those pass thrugh methods
     get enableRealtimeStrokes(): boolean {
         return this.settings.enableRealtimeStrokes
     }
@@ -90,7 +89,6 @@ export class SettingsHandler implements Handler {
         throw new Error("Method not implemented.");
     }
 
-    // Duplicated code in the electron.ts file
     public getServerUUID(): string {
         try {
             return machineIdSync();

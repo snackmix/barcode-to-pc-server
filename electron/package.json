@@ -3,6 +3,15 @@
 	"version": "3.19.0",
 	"license": "MIT",
 	"main": "bin/main.js",
+	"author": {
+		"name": "Filippo Tortomasi",
+		"email": "filippo.tortomasi@gmail.com",
+		"url": "https://github.com/fttx"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fttx/barcode-to-pc-server.git"
+	},
 	"scripts": {
 		"start": "gulp start",
 		"build": "gulp build",
@@ -30,6 +39,25 @@
 		],
 		"productName": "Barcode to PC server",
 		"afterSign": "../electron/notarize.js",
+		"mac": {
+			"category": "public.app-category.utilities",
+			"hardenedRuntime": true,
+			"entitlements": "../electron/electron-resources/entitlements.mac.plist",
+			"gatekeeperAssess": false,
+			"extendInfo": {
+				"LSUIElement": 1
+			},
+			"target": [
+				{
+					"target": "default",
+					"arch": [
+						"arm64",
+						"x64"
+					]
+				}
+			],
+			"icon": "electron-resources/icon.icns"
+		},
 		"dmg": {
 			"icon": "electron-resources/dmg-icon.icns",
 			"background": "electron-resources/background.tiff",

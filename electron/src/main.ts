@@ -26,16 +26,13 @@ ipcMain.on('electron-store-set', async (event, key, value) => {
 });
 
 ipcMain
-    .on('pageLoad', (event) => { // the renderer will send a 'pageLoad' message once the index.html document is loaded. (implies that the mainWindow exists)
+    .on('pageLoad', (event) => {
         if (wss != null || event.sender == null) {
             return;
         }
 
         ipcClient = event.sender;
 
-        // The open-file event can be triggered before pageLoad event, so we
-        // need to save the last argv value, so that we can send them to the
-        // ionic project when the app finally loads. (macOS only)
         if (lastArgv) {
             ipcClient.send('second-instance-open', lastArgv);
             lastArgv = null;
@@ -43,20 +40,15 @@ ipcMain
 
         wss = new WebSocket.Server({ port: Config.PORT });
         connectionHandler.announceServer();
-        // TODO: get rid of setIpcClients, they generate unknown of unknowns
         connectionHandler.setIpcClient(ipcClient);
         uiHandler.setIpcClient(ipcClient);
         scansHandler.setIpcClient(ipcClient);
 
-        // wss events should be registered immediately
         wss.on('connection', (ws, req: http.IncomingMessage) => {
             console.log("ws(incoming connection)", req.connection.remoteAddress)
-            // const clientAddress = req.connection.remoteAddress;
 
             ws.on('message', async message => {
                 console.log('ws(message): ', message)
-                // TODO: da sempre false, perchè?
-                // è necessario questo controllo?
                 if (!uiHandler.mainWindow) {
                     return;
                 }
@@ -66,7 +58,7 @@ ipcMain
                 messageObj = await scansHandler.onWsMessage(ws, messageObj, req);
                 messageObj = await connectionHandler.onWsMessage(ws, messageObj, req);
 
-                ipcClient.send(messageObj.action, messageObj); // forward ws messages to ipc
+                ipcClient.send(messageObj.action, messageObj);
             });
 
             ws.on('close', () => {
@@ -80,20 +72,12 @@ ipcMain
             });
         });
 
-        // app.on('before-quit', (event) => {
-        //    closeServer();
-        // })
-
-        app.on('window-all-closed', () => { // TODO: test on windows
+        app.on('window-all-closed', () => {
             closeServer();
-            app.quit(); // TODO: keep the server running (this can't be done at the moment because the scannings are saved in the browserWindow localStorage)
+            app.quit();
         });
     })
 
-// On macOS when you open an associated file (eg. btpt) electron emits
-// the 'open-file' event.
-// On Windows, instead, will be opened a second instance of the app, and
-// it is handled on the ui.handler.ts file.
 app.on('will-finish-launching', () => {
     app.on('open-file', (event, path) => {
         event.preventDefault();

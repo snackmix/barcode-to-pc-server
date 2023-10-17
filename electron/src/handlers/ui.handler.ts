@@ -22,25 +22,11 @@ export class UiHandler implements Handler {
     };
 
     public tray: Tray = null;
-    // Keep a global reference of the window object, if you don't, the window
-    // will be closed automatically when the JavaScript object is garbage
-    // collected.
     public mainWindow: BrowserWindow;
-    // Used to hold the server settings, shared between the main and renderer
-    // process.
-    // Warning: wait for the onSettingsChanged event before reading values!
     private settingsHandler: SettingsHandler;
     private ipcClient;
-    /**
-     * quitImmediately must be set to TRUE before calling app.quit().
-     *
-     * This variable is used to detect when the user clicks the **close button** of the window:
-     * since the 'close' event may fire for various reasons, everytime that quitImmediately is set
-     * to FALSE we can assume that the user has clicked the close button.
-     */
     public quitImmediately = false;
 
-    // Used to trigger the automatic window minimization only on the first launch
     static IsFirstInstanceLaunch = true;
 
     private static instance: UiHandler;
@@ -51,13 +37,7 @@ export class UiHandler implements Handler {
             return;
         }
         app.on('second-instance', (event, argv, workingDirectory) => {
-            // Send the second instance' argv value, so that it can grab the file
-            // parameter, if there is one (.btpt)
-            //
-            // On macOS the file opening is handled differently, see the
-            // main.ts>open-file event
             this.mainWindow.webContents.send('second-instance-open', argv)
-            // Someone tried to run a second instance, we should focus the main window.
             this.bringWindowUp();
         })
 
@@ -70,22 +50,15 @@ export class UiHandler implements Handler {
             if (canTriggerSettingsReadyCounter == 2) this.onSettingsReady()
         });
 
-        app.on('ready', () => { // This method will be called when Electron has finished initialization and is ready to create browser windows. Some APIs can only be used after this event occurs.
+        app.on('ready', () => {
             this.createWindow();
             canTriggerSettingsReadyCounter++;
             if (canTriggerSettingsReadyCounter == 2) this.onSettingsReady()
         });
 
-        app.on('window-all-closed', () => {  // Quit when all windows are closed.
-            // if (process.platform !== 'darwin') { // On OS X it is common for applications and their menu bar to stay active until the user quits explicitly with Cmd + Q, but since Barcode to PC needs the browser windows to perform operation on the localStorage this is not allowed
+        app.on('window-all-closed', () => {
             app.quit()
-            // }
         })
-        // app.on('activate', () => {
-        //     if (this.mainWindow === null) { // On OS X it's common to re-create a window in the app when the dock icon is clicked and there are no other windows open, but since the app will quit when there aren't active windows this event will never occour.
-        //         this.createWindow()
-        //     }
-        // })
         app.setName(Config.APP_NAME);
         if (app.setAboutPanelOptions) {
             app.setAboutPanelOptions({
@@ -96,7 +69,6 @@ export class UiHandler implements Handler {
         }
     }
 
-    // Waits for the settings to be read and the 'ready' event to be sent
     public onSettingsReady() {
         this.autoMinimize();
     }
@@ -112,7 +84,6 @@ export class UiHandler implements Handler {
         if (this.settingsHandler.enableTray) {
             if (this.tray == null) {
                 let menuItems: MenuItemConstructorOptions[] = [
-                    // { label: 'Enable realtime ', type: 'radio', checked: false },
                     {
                         label: 'Exit', click: () => {
                             this.quitImmediately = true;
@@ -121,17 +92,14 @@ export class UiHandler implements Handler {
                     },
                 ];
                 if (process.platform == 'darwin') {
-                    // macOS
                     const icon = nativeImage.createFromPath(_path.join(__dirname, '/../assets/tray/macos/icon.png'));
                     icon.setTemplateImage(true)
                     this.tray = new Tray(icon);
                     menuItems.unshift({ label: 'Hide', role: 'hide' });
                     menuItems.unshift({ label: 'Show', click: () => { this.bringWindowUp(); } });
                 } else if (process.platform.indexOf('win') != -1) {
-                    // Windows
                     this.tray = new Tray(nativeImage.createFromPath((_path.join(__dirname, '/../assets/tray/windows/icon.ico'))));
                 } else {
-                    // Linux
                     this.tray = new Tray(nativeImage.createFromPath((_path.join(__dirname, '/../assets/tray/default.png'))));
                     menuItems.unshift({ label: 'Hide', role: 'hide', click: () => { this.mainWindow.hide(); } });
                     menuItems.unshift({ label: 'Show', click: () => { this.bringWindowUp(); } });
@@ -142,7 +110,7 @@ export class UiHandler implements Handler {
                 });
 
                 const contextMenu = Menu.buildFromTemplate(menuItems);
-                this.tray.setContextMenu(contextMenu); // https://github.com/electron/electron/blob/master/docs/api/tray.md
+                this.tray.setContextMenu(contextMenu);
                 this.tray.setToolTip(app.getName() + ' is running');
             }
         } else {
@@ -169,21 +137,18 @@ export class UiHandler implements Handler {
             return;
         }
 
-        // macOS sets the wasOpenedAsHidden parameter based on the system settings
         if (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAsHidden) {
-            this.mainWindow.hide(); // corresponds to CMD+H, minimize() corresponds to clicking the yellow reduce to icon button
+            this.mainWindow.hide();
             if (this.settingsHandler.enableTray && app.dock != null) {
                 app.dock.hide();
             }
         }
 
-        // Windows and Linux do not have any minimization system settings, so
-        // we have to read it from our settings
         if (process.platform !== 'darwin' && this.settingsHandler.openAutomatically == 'minimized') {
             if (this.settingsHandler.enableTray) {
-                this.mainWindow.hide(); // removes the app from the taskbar
+                this.mainWindow.hide();
             } else {
-                this.mainWindow.minimize(); // corresponds to clicking the reduce to icon button
+                this.mainWindow.minimize();
             }
         }
         UiHandler.IsFirstInstanceLaunch = false;
@@ -200,9 +165,6 @@ export class UiHandler implements Handler {
             })
             this.mainWindow.loadURL('http://localhost:8200/');
             this.mainWindow.webContents.openDevTools();
-            // const log = require("electron-log")
-            // log.transports.file.level = "info"
-            // autoUpdater.logger = log
         } else {
             this.mainWindow.loadURL(_path.join('file://', __dirname, '../www/index.html'));
         }
@@ -270,10 +232,7 @@ export class UiHandler implements Handler {
                 {
                     role: 'help',
                     submenu: [
-                        // {
-                        //     label: 'Info',
-                        //     click() { require('electron').shell.openExternal('https://electronjs.org') }
-                        // }
+
                     ]
                 }
             ]
@@ -281,14 +240,12 @@ export class UiHandler implements Handler {
             Menu.setApplicationMenu(menu)
         }
 
-        this.mainWindow.on('close', (event) => { // occours when app.quit() is called or when the app is closed by the OS (eg. click close button)
+        this.mainWindow.on('close', (event) => {
             event.returnValue = true;
             if (this.quitImmediately) {
                 return true;
             }
 
-            // When the close button is clicked before the settings are loaded,
-            // and thus the eventual trayIcon hasn't been created yet
             if (!this.settingsHandler) {
                 return true;
             }
@@ -305,16 +262,8 @@ export class UiHandler implements Handler {
             return true;
         });
 
-        // Emitted when the window is closed.
         this.mainWindow.on('closed', () => {
-            // Dereference the window object, usually you would store windows  in an array if your app supports multi windows, this is the time when you should delete the corresponding element.
             this.mainWindow = null
-            // wss.clients.forEach(client => {
-            //     // if (client.readyState === WebSocket.OPEN) {
-            //     client.close();
-            //     // }
-            // });
-            // app.quit();
         })
 
         if (this.mainWindow.isVisible()) {

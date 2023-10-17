@@ -6,24 +6,6 @@ import * as os from 'os';
 import * as path from 'path';
 import { v4 } from 'uuid';
 
-/**
- * In the newer versions of Electron window.require('native dependency') has
- * been removed (context-isolation, see:
- * https://www.electronjs.org/docs/latest/tutorial/context-isolation).
- *
- * To communicate between native modules accessible only by the main process
- * and the renderer process we use this intermediate preload.js file.
- *
- * It's executed before the renderer starts, and exposes new objects to the
- * window object.
- *
- * Example call from the renderer: window.preload.nativeDep()
- *
- * Nested methods inside the dependency module cannot be called, so it's
- * required a pass-through method (see below).
- *
- * Promises do not work. Use synchronous methods.
- */
 contextBridge.exposeInMainWorld('preload', {
     ipcRenderer: {
         on(channel, listener) {

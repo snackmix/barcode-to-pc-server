@@ -58,12 +58,6 @@ export class ActivatePage {
   }
 
   onDeactivateClick() {
-    // TODO: send the user an e-mail with a token and only when the e-mail is
-    // verified deactivate the license
-    // Alternatively do it manually with human support
-
-
-    // DEBUG ONLY:
     this.serial = '';
     this.licenseProvider.deactivate(true);
   }

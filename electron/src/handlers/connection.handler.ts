@@ -18,7 +18,7 @@ import { SettingsHandler } from './settings.handler';
 import { UiHandler } from './ui.handler';
 
 export class ConnectionHandler implements Handler {
-    public static EVENT_CODE_KICKED_OUT = 4001; // Used when the server kicks out a client
+    public static EVENT_CODE_KICKED_OUT = 4001;
 
     private fallBackBonjour: b.Service;
     private mdnsAd: any;
@@ -59,8 +59,6 @@ export class ConnectionHandler implements Handler {
                     this.wsClients[data.deviceId].send(JSON.stringify(data.response));
                 }
             })
-        // Send the new settings to the already connected clients
-        // The settings are also sent in the HELO request.
         settingsHandler.onSettingsChanged.subscribe((settings: SettingsModel) => {
             for (let deviceId in this.wsClients) {
                 let ws = this.wsClients[deviceId];
@@ -111,7 +109,7 @@ export class ConnectionHandler implements Handler {
             try {
                 this.bonjour = b();
                 this.fallBackBonjour = this.bonjour.publish({ name: Config.APP_NAME, type: 'http', port: Config.PORT })
-                this.fallBackBonjour.on('error', err => { // err is never set?
+                this.fallBackBonjour.on('error', err => {
                     dialog.showMessageBox(this.uiHandler.mainWindow, {
                         type: 'error',
                         title: 'Error',
@@ -167,7 +165,6 @@ export class ConnectionHandler implements Handler {
     onWsClose(ws: WebSocket) {
         if (this.ipcClient) {
             this.findDeviceIdByWs(ws).then(deviceId => {
-                // console.log('@@@ close', deviceId)
                 this.ipcClient.send('wsClose', { deviceId: deviceId })
             });
         }

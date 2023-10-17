@@ -12,8 +12,6 @@ function clean() {
     return src(['dist', 'bin'], { read: false, allowEmpty: true }).pipe(rm());
 }
 
-
-// prepare
 function prepareIonic(cb) {
     if (!fs.existsSync('../ionic/node_modules')) {
         log('👉 Ionic node_modules not found. Installing ionic dependencites: npm i');
@@ -24,7 +22,6 @@ function prepareIonic(cb) {
 }
 
 function prepareElectronAssets() {
-    // copy src/assets to bin
     return src('src/assets/**/*')
         .pipe(dest('bin/assets'));
 }
@@ -40,7 +37,6 @@ function prepareElectronModels() {
 }
 
 
-// start
 function startElectronTsc(cb) {
     log('👉 npm run tsc -- --watch');
     exec('npm run tsc -- --watch');
@@ -60,7 +56,6 @@ function startIonicServe(cb) {
     cb();
 }
 
-// build
 function buildIonic(cb) {
     execSync('npm run build -- --prod', { cwd: '../ionic/', stdio: 'inherit' });
     return src(['../ionic/www/**/*'])
@@ -72,12 +67,10 @@ function buildElectron(cb) {
     cb();
 }
 
-// dist
 function build(cb) {
     electronBuilder.build({ publish: 'never' }).then(() => { cb(); });
 }
 
-// publish
 function publish(cb) {
     electronBuilder.build({ publish: 'always' }).then(() => {
         if (process.platform.startsWith('win')) {
