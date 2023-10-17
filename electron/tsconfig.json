@@ -2,23 +2,23 @@
     "compileOnSave": false,
     "allowSyntheticDefaultImports": true,
     "compilerOptions": {
-      "experimentalDecorators": true,
-      "outDir": "bin/",
-      "baseUrl": ".",
-      "sourceMap": true,
-      "target": "es6",
-      "module": "commonjs",
-      "lib": [
-        "es2017",
-        "dom",
-      ],
+        "experimentalDecorators": true,
+        "outDir": "bin/",
+        "baseUrl": ".",
+        "sourceMap": true,
+        "target": "es6",
+        "module": "commonjs",
+        "lib": [
+            "es2017",
+            "dom"
+        ]
     },
     "files": [
-      "./src/main.ts",
-      "./src/preload.ts",
+        "./src/main.ts",
+        "./src/preload.ts"
     ],
     "exclude": [
-      "ionic",
-      "ionic/**/*"
+        "ionic",
+        "ionic/**/*"
     ]
-  }
+}
